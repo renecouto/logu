@@ -17,9 +17,9 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@master
-      # - name: Download
-      #   run: go mod download
+
       - name: Test
         run: go test .
+
       - name: Build
         run: go build .
