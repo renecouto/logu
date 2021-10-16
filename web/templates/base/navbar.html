@@ -1,0 +1,19 @@
+{{ define "navbar" }}
+<nav class="navbar navbar-light bg-light">
+  <div class="container-fluid">
+    <a class="navbar-brand" href="#">
+      <img src="/assets/logotop.png" alt="" width="30" height="24" class="d-inline-block align-text-top">
+      LogU
+    </a>
+    <!-- <span>User: {{ .user }}, Date: {{ .date }}</span> -->
+    <form action="/">
+      <label for="date">Date:</label>
+      <input type="date" id="date-picker" name="date">
+      <button class="btn btn-outline-secondary" id="button-addon1" type="submit">Go</button>
+    </form>
+    <form action="/logout" method="POST">
+      <button class="btn btn-outline-secondary" id="button-addon1" type="submit">Logout</button>
+    </form>
+  </div>
+</nav>
+{{ end }}

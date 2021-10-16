@@ -1,0 +1,94 @@
+{{ template "header" }}
+<body>
+    <script>
+        function setTaskState(idd) {
+            var request = new XMLHttpRequest()
+            var fd = new FormData()
+            request.open('PUT', '/update-task', true);
+            var done = document.getElementById("taskx-"+idd).checked
+            var payload = {
+                "Id": parseInt(idd),
+                "Done": done,
+            }
+            request.setRequestHeader('Content-Type', 'application/json; charset=UTF-8')
+            request.setRequestHeader('csrfToken', "{{ .csrfToken }}")
+            
+            request.send(JSON.stringify(payload))
+        }
+
+    </script>
+    {{ template "navbar" . }}
+    <div class="container-fluid d-flex h-100 flex-column">
+        <div class="row flex-grow-1">
+        <div class="col-md-4 rounded-2 border border-4">
+            <div class="row rounded-2 border border-4">
+                <div class="col text-center">Tasks</div>
+            </div>
+        {{ range .itens.Tasks }}
+            <div class="row">
+                <div class="col">
+                    <input type="checkbox" id="taskx-{{ .Id }}" onclick="setTaskState( {{ .Id }})" name="taskx" {{ if .Done }}checked{{ end }}>
+                </div>
+                <div class="col">
+                    {{ .Description }}
+                </div>
+            </div>
+        {{ end }}
+        <form action="/create-task" method="POST">
+            {{ template "csrf" . }}
+            <div class="input-group">
+                <input name="Description" type="text" class="form-control" placeholder="Description" aria-label="Description" aria-describedby="button-addon2">
+                <button class="btn btn-outline-secondary" id="button-addon2" type="submit">Create</button>
+            </div>
+        </form>
+        </div>
+
+        <div class="col-md-4 rounded-2 border border-4">
+            <div class="row rounded-2 border border-4">
+                <div class="col text-center">Notes</div>
+            </div>
+
+        {{ range .itens.Notes }}
+            <div class="row">
+                <input type="hidden" name="Id" value="{{ .Id }}"> 
+                <div class="col">{{ .Description }}</div>
+            </div>
+        {{ end }}
+        <form action="/create-note" method="POST">
+            {{ template "csrf" . }}
+            <div class="input-group">
+                <input name="Description" type="text" class="form-control" placeholder="Description" aria-label="Description" aria-describedby="button-addon2">
+                <button class="btn btn-outline-secondary" id="button-addon2" type="submit">Create</button>
+            </div>
+        </form>
+        </div>
+
+        
+
+        <div class="col-md-4 rounded-2 border border-4">
+            <div class="row rounded-2 border border-4">
+                <div class="col text-center">Events</div>
+            </div>
+            
+            {{ range .itens.Events }}
+            <div class="row align-items-start">
+                <input type="hidden" name="Id" value="{{ .Id }}"> 
+                <div class="col">{{ .Description }}</div>
+                <div class="col">{{ .ScheduledFor.Format "15:04" }}</div>
+            </div>
+            {{ end }}
+            <form action="/create-event" method="POST">
+                <div class="input-group">
+                    {{ template "csrf" . }}
+                    <input name="Description" type="text" class="form-control" placeholder="Description" aria-label="Description">
+                    <input name="ScheduledForHour" type="number" min="0" max="23" class="form-control" placeholder="ScheduledForHour" aria-label="ScheduledForHour">
+                    <input name="ScheduledForMinute" type="number" min="0" max="59" class="form-control" placeholder="ScheduledForMinute" aria-label="ScheduledForHour">
+                    <button class="btn btn-outline-secondary" id="button-addon2" type="submit">Create</button>
+                </div>
+            </form>
+        </div>        
+    </div>
+    </div>
+    
+
+</body>
