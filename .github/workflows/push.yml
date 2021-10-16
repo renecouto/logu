@@ -9,8 +9,17 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: "1.17.2"
+
       - name: Checkout
         uses: actions/checkout@master
-
-      - name: Make binaries
-        uses: sosedoff/actions/golang-build@master
+      - name: Download
+        run: go mod download
+      - name: Test
+        run: go test .
+      - name: Build
+        run: go build .
