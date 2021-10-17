@@ -1,6 +1,7 @@
 package models
 
 import (
+	"context"
 	"time"
 )
 
@@ -29,14 +30,14 @@ type Note struct {
 
 type ItemsRepository interface {
 	InitSchema()
-	GetAll() AllData
-	AddEvent(e Event)
-	AddNote(e Note)
-	AddTask(e Task)
-	GetUserByUsername(username string) *User
-	AddUser(user User)
-	UpdateTask(userId int64, taskId int64, update Task) *Task
-	GetAllForDateAndUser(d time.Time, userId int64) AllData
+	GetAll(ctx context.Context) AllData
+	AddEvent(ctx context.Context, e Event)
+	AddNote(ctx context.Context, e Note)
+	AddTask(ctx context.Context, e Task)
+	GetUserByUsername(ctx context.Context, username string) *User
+	AddUser(ctx context.Context, user User)
+	UpdateTask(ctx context.Context, userId int64, taskId int64, update Task) *Task
+	GetAllForDateAndUser(ctx context.Context, d time.Time, userId int64) AllData
 }
 
 type AllData struct {

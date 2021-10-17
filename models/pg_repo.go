@@ -9,7 +9,7 @@ import (
 	"github.com/renecouto/logu/psql"
 )
 
-var ctx = context.Background()
+// var ctx = context.Background()
 
 func convTaskFromPg(s psql.Task) Task {
 	return Task{Id: s.ID, Description: s.Description, CreatedAt: s.CreatedAt, User: s.UserID, Done: s.Done}
@@ -31,25 +31,25 @@ func NewPgItemsRepo(q *psql.Queries, db *sql.DB) *PgItemsRepository {
 func (i *PgItemsRepository) InitSchema() {
 }
 
-func (i *PgItemsRepository) GetAll() AllData {
+func (i *PgItemsRepository) GetAll(ctx context.Context) AllData {
 	return AllData{}
 }
 
-func (i *PgItemsRepository) AddEvent(e Event) {
+func (i *PgItemsRepository) AddEvent(ctx context.Context, e Event) {
 	_, err := i.queries.CreateEvent(ctx, psql.CreateEventParams{Description: e.Description, CreatedAt: e.CreatedAt, UserID: e.User, ScheduledFor: e.ScheduledFor})
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (i *PgItemsRepository) AddNote(e Note) {
+func (i *PgItemsRepository) AddNote(ctx context.Context, e Note) {
 	_, err := i.queries.CreateNote(ctx, psql.CreateNoteParams{Description: e.Description, CreatedAt: e.CreatedAt, UserID: e.User})
 	if err != nil {
 		panic(err)
 	}
 }
 
-func (i *PgItemsRepository) AddTask(e Task) {
+func (i *PgItemsRepository) AddTask(ctx context.Context, e Task) {
 
 	_, err := i.queries.CreateTask(ctx, psql.CreateTaskParams{Description: e.Description, CreatedAt: e.CreatedAt, UserID: e.User})
 	if err != nil {
@@ -57,7 +57,7 @@ func (i *PgItemsRepository) AddTask(e Task) {
 	}
 }
 
-func (i *PgItemsRepository) GetUserByUsername(username string) *User {
+func (i *PgItemsRepository) GetUserByUsername(ctx context.Context, username string) *User {
 	res, err := i.queries.GetUser(ctx, username)
 	if err != nil {
 		panic(err)
@@ -65,11 +65,11 @@ func (i *PgItemsRepository) GetUserByUsername(username string) *User {
 	return &User{Id: res.ID, FullName: res.Fullname, Username: res.Username}
 }
 
-func (i *PgItemsRepository) AddUser(user User) {
+func (i *PgItemsRepository) AddUser(ctx context.Context, user User) {
 	i.queries.CreateUser(ctx, psql.CreateUserParams{ID: user.Id, Fullname: user.FullName, Username: user.Username})
 }
 
-func (i *PgItemsRepository) UpdateTask(userId int64, taskId int64, update Task) *Task {
+func (i *PgItemsRepository) UpdateTask(ctx context.Context, userId int64, taskId int64, update Task) *Task {
 	res, err := i.queries.UpdateTask(ctx, psql.UpdateTaskParams{UserID: userId, ID: taskId, Done: update.Done})
 	if err != nil {
 		panic(err)
@@ -78,7 +78,7 @@ func (i *PgItemsRepository) UpdateTask(userId int64, taskId int64, update Task) 
 	return &r2
 }
 
-func (i *PgItemsRepository) GetAllForDateAndUser(d time.Time, userId int64) AllData {
+func (i *PgItemsRepository) GetAllForDateAndUser(ctx context.Context, d time.Time, userId int64) AllData {
 
 	tasksx, err := i.queries.ListTasks(ctx, psql.ListTasksParams{UserID: userId, Column2: d})
 	if err != nil {
