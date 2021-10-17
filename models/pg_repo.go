@@ -9,8 +9,6 @@ import (
 	"github.com/renecouto/logu/psql"
 )
 
-// var ctx = context.Background()
-
 func convTaskFromPg(s psql.Task) Task {
 	return Task{Id: s.ID, Description: s.Description, CreatedAt: s.CreatedAt, User: s.UserID, Done: s.Done}
 }
