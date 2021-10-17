@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/hex"
 	"flag"
@@ -40,7 +41,7 @@ func userIdFromCookie(c *gin.Context, ir models.ItemsRepository) (int64, error) 
 		log.Println("got err:", err)
 		return 0, err
 	}
-	return ir.GetUserByUsername(u).Id, nil
+	return ir.GetUserByUsername(c, u).Id, nil
 }
 
 func GenerateSecureToken(length int) string {
@@ -63,7 +64,7 @@ func (ctl *Controller) PostLogin(c *gin.Context) {
 	username := c.PostForm("user")
 
 	if username != "" {
-		onDb := ctl.itemsRepo.GetUserByUsername(username)
+		onDb := ctl.itemsRepo.GetUserByUsername(c, username)
 		if onDb != nil {
 			c.SetCookie("user", username, 1000, "/", "localhost", false, true)
 			c.Redirect(http.StatusFound, "/")
@@ -92,7 +93,7 @@ func (ctl *Controller) GetIndex(c *gin.Context) {
 	if err != nil {
 		panic(err)
 	}
-	user := ctl.itemsRepo.GetUserByUsername(u)
+	user := ctl.itemsRepo.GetUserByUsername(c, u)
 	log.Println("user: ", user)
 	if user == nil {
 		c.AbortWithStatus(500)
@@ -114,7 +115,7 @@ func (ctl *Controller) GetIndex(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "index.html", gin.H{"itens": ctl.itemsRepo.GetAllForDateAndUser(parsed, user.Id), "user": u, "date": parsed, "csrfToken": csrfToken})
+	c.HTML(http.StatusOK, "index.html", gin.H{"itens": ctl.itemsRepo.GetAllForDateAndUser(c, parsed, user.Id), "user": u, "date": parsed, "csrfToken": csrfToken})
 }
 
 func (ctl *Controller) CreateEvent(c *gin.Context) {
@@ -138,7 +139,7 @@ func (ctl *Controller) CreateEvent(c *gin.Context) {
 	e.ScheduledFor = timeRebuilt
 	e.CreatedAt = time.Now()
 	e.User = userId
-	ctl.itemsRepo.AddEvent(*e)
+	ctl.itemsRepo.AddEvent(c, *e)
 	c.Redirect(http.StatusFound, "/")
 }
 
@@ -153,7 +154,7 @@ func (ctl *Controller) CreateTask(c *gin.Context) {
 	c.Bind(e)
 	e.CreatedAt = time.Now()
 	e.User = userId
-	ctl.itemsRepo.AddTask(*e)
+	ctl.itemsRepo.AddTask(c, *e)
 	c.Redirect(http.StatusFound, "/")
 }
 
@@ -169,7 +170,7 @@ func (ctl *Controller) UpdateTask(c *gin.Context) {
 	if err != nil {
 		log.Println("got err with binding: ", err)
 	}
-	ctl.itemsRepo.UpdateTask(userId, e.Id, *e)
+	ctl.itemsRepo.UpdateTask(c, userId, e.Id, *e)
 
 	c.JSON(200, gin.H{"status": "OK"})
 }
@@ -184,7 +185,7 @@ func (ctl *Controller) CreateNote(c *gin.Context) {
 	c.Bind(e)
 	e.CreatedAt = time.Now()
 	e.User = userId
-	ctl.itemsRepo.AddNote(*e)
+	ctl.itemsRepo.AddNote(c, *e)
 	c.Redirect(http.StatusFound, "/")
 }
 
@@ -201,9 +202,10 @@ var utc = getUtc()
 var renegade = models.User{Id: 1, Username: "renegade", FullName: "renato Cortes"}
 
 func SetupData(itemsRepo models.ItemsRepository) {
-	itemsRepo.AddEvent(models.Event{Description: "comprar coisas", ScheduledFor: time.Now(), CreatedAt: time.Now(), User: renegade.Id})
-	itemsRepo.AddTask(models.Task{Description: "regar as plantas", CreatedAt: time.Now(), User: renegade.Id, Done: false})
-	itemsRepo.AddNote(models.Note{Description: "hoje deve ser um bom dia para meditar, será que faço isso?", CreatedAt: time.Now(), User: renegade.Id})
+	c := context.Background()
+	itemsRepo.AddEvent(c, models.Event{Description: "comprar coisas", ScheduledFor: time.Now(), CreatedAt: time.Now(), User: renegade.Id})
+	itemsRepo.AddTask(c, models.Task{Description: "regar as plantas", CreatedAt: time.Now(), User: renegade.Id, Done: false})
+	itemsRepo.AddNote(c, models.Note{Description: "hoje deve ser um bom dia para meditar, será que faço isso?", CreatedAt: time.Now(), User: renegade.Id})
 }
 
 func getItemsRepo() models.ItemsRepository {
