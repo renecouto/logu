@@ -10,19 +10,20 @@
 - browse previous days
 ## Architecture
 ### Step 1
-- Server side rendered html
-    - Calendar browsing
-        - go to present day by default
-        - ?date=2021-04-05 to browse by date
-- User specific stuff
-- Database models
-- Basic login/logout (no auth)
+- Server side rendered html DONE
+    - Calendar browsing DONE
+        - go to present day by default DONE
+        - ?date=2021-04-05 to browse by date DONE
+- Database models DONE
+- Basic login/logout (no auth) DONE
 
 ### Step 2
 - Front api
 - Javascript tracks changes to save
 - Users api
 - Bullet journal API
+- User customization (fonts, backgrounds)
+
 
 ### Step 3
 - Step 2 +
