@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/hex"
+	"flag"
 	"log"
 	"math/rand"
 	"net/http"
@@ -9,7 +11,9 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 	"github.com/renecouto/logu/models"
+	"github.com/renecouto/logu/psql"
 )
 
 func checkCsrf(c *gin.Context) {
@@ -29,7 +33,7 @@ func checkCsrfJson(c *gin.Context, form string) {
 	}
 }
 
-func userIdFromCookie(c *gin.Context, ir *models.ItemsRepository) (int, error) {
+func userIdFromCookie(c *gin.Context, ir models.ItemsRepository) (int64, error) {
 	u, err := c.Cookie("user")
 	if err != nil {
 		c.AbortWithStatus(400)
@@ -48,7 +52,7 @@ func GenerateSecureToken(length int) string {
 }
 
 type Controller struct {
-	itemsRepo *models.ItemsRepository
+	itemsRepo models.ItemsRepository
 }
 
 func (*Controller) GetLogin(c *gin.Context) {
@@ -76,14 +80,15 @@ func (*Controller) PostLogout(c *gin.Context) {
 }
 
 func (ctl *Controller) GetIndex(c *gin.Context) {
+	u, err := c.Cookie("user")
+	if u == "" || err != nil {
+		c.Redirect(http.StatusFound, "/login")
+		return
+	}
 	c.SetSameSite(http.SameSiteStrictMode)
 	csrfToken := GenerateSecureToken(128)
 	c.SetCookie("csrfToken", csrfToken, 1000, "/", "localhost", false, true)
 
-	u, err := c.Cookie("user")
-	if u == "" {
-		c.Redirect(http.StatusFound, "/login")
-	}
 	if err != nil {
 		panic(err)
 	}
@@ -164,9 +169,8 @@ func (ctl *Controller) UpdateTask(c *gin.Context) {
 	if err != nil {
 		log.Println("got err with binding: ", err)
 	}
-	task := ctl.itemsRepo.GetTaskById(userId, e.Id)
-	task.Done = e.Done
-	log.Println(ctl.itemsRepo.GetTaskById(userId, e.Id))
+	ctl.itemsRepo.UpdateTask(userId, e.Id, *e)
+
 	c.JSON(200, gin.H{"status": "OK"})
 }
 
@@ -196,33 +200,51 @@ var utc = getUtc()
 
 var renegade = models.User{Id: 1, Username: "renegade", FullName: "renato Cortes"}
 
-func SetupData(itemsRepo *models.ItemsRepository) {
+func SetupData(itemsRepo models.ItemsRepository) {
 	itemsRepo.AddEvent(models.Event{Description: "comprar coisas", ScheduledFor: time.Now(), CreatedAt: time.Now(), User: renegade.Id})
-	itemsRepo.AddTask(models.Task{Description: "regar as plantas", CreatedAt: time.Now(), User: renegade.Id})
+	itemsRepo.AddTask(models.Task{Description: "regar as plantas", CreatedAt: time.Now(), User: renegade.Id, Done: false})
 	itemsRepo.AddNote(models.Note{Description: "hoje deve ser um bom dia para meditar, será que faço isso?", CreatedAt: time.Now(), User: renegade.Id})
-	itemsRepo.AddUser(renegade)
 }
-func run_website() {
+
+func getItemsRepo() models.ItemsRepository {
+	db, err := sql.Open("postgres", "user=postgres password=example host=localhost dbname=postgres sslmode=disable")
+	if err != nil {
+		panic(err)
+	}
+	queries := psql.New(db)
+
+	return models.NewPgItemsRepo(queries, db)
+}
+func run_website(in_memory bool, setup_data bool) {
 
 	r := gin.Default()
 	r.LoadHTMLGlob("web/templates/**/*")
-
-	itemsRepo := models.NewItemsRepository()
-	SetupData(&itemsRepo)
+	var itemsRepo models.ItemsRepository
+	if in_memory {
+		ir := models.InMemoryItemsRepository{}
+		ir.InitSchema()
+		itemsRepo = &ir
+	} else {
+		itemsRepo = getItemsRepo()
+	}
+	if setup_data {
+		SetupData(itemsRepo)
+	}
 	r.Static("/assets", "./assets")
-	ctl := Controller{itemsRepo: &itemsRepo}
+	ctl := Controller{itemsRepo: itemsRepo}
 	r.GET("/login", ctl.GetLogin)
 	r.POST("/login", ctl.PostLogin)
 	r.POST("/logout", ctl.PostLogout)
 	r.GET("/", ctl.GetIndex)
 	r.POST("/create-event", ctl.CreateEvent)
 	r.POST("/create-task", ctl.CreateTask)
-
 	r.PUT("/update-task", ctl.UpdateTask)
 	r.POST("/create-note", ctl.CreateNote)
 	r.Run()
 }
 
 func main() {
-	run_website()
+	in_memory := flag.Bool("in-memory", false, "run in-memory instead of local postgres")
+	setup_data := flag.Bool("setup-data", false, "load sample data")
+	run_website(*in_memory, *setup_data)
 }
